@@ -1,31 +1,100 @@
 <!doctype html>
-<html>
+<html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Cubo 3D</title>
-  <style>body { margin: 0; overflow: hidden; background: #111; }</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zapatilla 3D</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #f2f2f2; font-family: sans-serif; }
+    #ui { position: absolute; top: 16px; left: 16px; }
+    button { margin-right: 6px; padding: 8px 12px; border: 0; border-radius: 6px; cursor: pointer; }
+  </style>
 </head>
 <body>
+<div id="ui">
+  <button data-color="#ffffff">Blanca</button>
+  <button data-color="#1e3a8a">Azul</button>
+  <button data-color="#7f1d1d">Granate</button>
+</div>
+
 <script type="module">
   import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+  import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 100);
-  camera.position.z = 3;
+  const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 0.8, 2.6);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(devicePixelRatio);
   document.body.appendChild(renderer.domElement);
 
-  const cube = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshNormalMaterial()
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.6));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+  sun.position.set(2, 3, 2);
+  scene.add(sun);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  // Materiales
+  const upperMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.6 });
+  const soleMat  = new THREE.MeshStandardMaterial({ color: '#f5f5f0', roughness: 0.9 });
+  const stripeMat = new THREE.MeshStandardMaterial({ color: '#0f5132', roughness: 0.5 });
+  const laceMat  = new THREE.MeshStandardMaterial({ color: '#222', roughness: 0.8 });
+
+  const shoe = new THREE.Group();
+
+  // Suela
+  const sole = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.12, 0.72), soleMat);
+  sole.position.y = -0.2;
+  shoe.add(sole);
+
+  // Empeine (media esfera aplanada)
+  const upper = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+    upperMat
   );
-  scene.add(cube);
+  upper.scale.set(1.7, 0.6, 0.72);
+  upper.position.y = -0.14;
+  shoe.add(upper);
+
+  // Puntera (cierra la parte delantera)
+  const toe = new THREE.Mesh(new THREE.SphereGeometry(0.36, 24, 16), upperMat);
+  toe.scale.set(0.9, 0.5, 0.9);
+  toe.position.set(0.6, -0.14, 0);
+  shoe.add(toe);
+
+  // Franjas laterales
+  for (const z of [0.365, -0.365]) {
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.06, 0.01), stripeMat);
+    stripe.position.set(0.05, -0.12, z);
+    shoe.add(stripe);
+  }
+
+  // Cordones
+  for (let i = 0; i < 4; i++) {
+    const lace = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.42), laceMat);
+    lace.position.set(0.5 - i * 0.22, 0.12, 0);
+    shoe.add(lace);
+  }
+
+  scene.add(shoe);
+
+  // Cambio de color del empeine
+  document.querySelectorAll('button[data-color]').forEach(btn => {
+    btn.addEventListener('click', () => upperMat.color.set(btn.dataset.color));
+  });
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
 
   renderer.setAnimationLoop(() => {
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
+    controls.update();
     renderer.render(scene, camera);
   });
 </script>
